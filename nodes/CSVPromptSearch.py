@@ -6,7 +6,6 @@ class CSVPromptSearch :
         return {
             "required" : {
                 "file_path" : ("STRING",) , 
-                "search" : ("STRING",{"default" : ""}) , 
             }
         }
     
@@ -19,6 +18,6 @@ class CSVPromptSearch :
     OUTPUT_NODE = False
     
 
-    def execute(self , file_path , search) : 
+    def execute(self , file_path) : 
         return {}
 

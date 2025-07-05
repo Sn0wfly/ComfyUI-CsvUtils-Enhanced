@@ -38,14 +38,16 @@ def get_prompt_list(file_path : str) :
     with open(file_path , 'r' , encoding="utf8") as csv_file:
 
         reader = csv.reader(csv_file , delimiter=' ')
-
+        i = 0
         for row in reader : 
            row_list.append(
-                {
+                {   "id" : i , 
                     "positive" : row[0] if len(row) > 0 and len(row[0]) > 0 else "(EMPTY)" , 
                     "negative" : row[1] if len(row) > 1 and len(row[1]) > 0 else "(EMPTY)"
                 }
            )
+
+           i += 1
         
         csv_file.close()
 

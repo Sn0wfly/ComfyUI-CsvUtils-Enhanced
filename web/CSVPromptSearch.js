@@ -2,13 +2,6 @@ import { app } from "../../scripts/app.js";
 import { api } from "../../../scripts/api.js";
 
 
-
-
-
-
-
-
-
 async function getPromptList(file_path) {
 	
 	//try {
@@ -20,7 +13,7 @@ async function getPromptList(file_path) {
 				file_path : file_path
 			})
 		})
-
+		
 		// if(response.status != 200) {
 		// 	throw new Error("error while searching querying prompts")
 		// }
@@ -42,23 +35,41 @@ async function getPromptList(file_path) {
 
 }
 
-function create_prompt_div(pos , neg) 
+function create_prompt_div(pos , neg , search) 
 {
+	
 	return ` 
 		<div class="csv-u-prompt-container">
-			<span class="csv-u-prompt-span csv-u-pos-span"> 
+			<p class="csv-u-prompt-span csv-u-pos-span"> 
 				${pos}\t
-			</span>
+			</p>
 
-			<span class="csv-u-prompt-span csv-u-neg-span">
+			<p class="csv-u-prompt-span csv-u-neg-span">
 				${neg}
-			</span>
+			</p>
 		</div>
 	`
 }
 
 function filter_data(prompt_list , search) {
-	return prompt_list.filter((prompt)=> prompt.positive.includes(search) || prompt.negative.includes(search))
+	let minisearch = new MiniSearch(
+		{
+			idField : "id" ,
+			fields : ["positive" , "negative"] , 
+			storeFields : ["positive" , "negative"] ,
+			fuzzy : 2 , 
+			combineWith : "AND"
+		}
+	)
+
+	minisearch.addAll(prompt_list)
+
+	const results = minisearch.search(search)
+
+	
+	console.log(results)
+	//return prompt_list.filter((prompt)=> prompt.positive.includes(search) || prompt.negative.includes(search))
+	return results
 }
 
 
@@ -69,6 +80,7 @@ function createResultWidget() {
 		result_container.style.overflow = "clip"
 		result_container.style.display = "flex"
 		result_container.style.flexDirection = "column"
+		result_container.className = "csv-u-result-container"
 
 		// result_container.style.height = "100%"
 		let header = document.createElement("h1")
@@ -81,7 +93,8 @@ function createResultWidget() {
 			result_container.appendChild(search_bar)
 		
 		let result_list = document.createElement("div")
-			result_list.style.overflow = "scroll"
+			result_list.style.overflowY = "scroll"
+
 			result_list.style.height = "100%"
 			result_container.appendChild(result_list)
 
@@ -94,8 +107,23 @@ function createResultWidget() {
 	return {result_container : result_container,  result_list : result_list , search_bar : search_bar}
 }
 
+function highlightSearchText(search , text) {
+	let begin_text = text
 
+	let terms_list = search.split(" ")
+	terms_list.forEach((s)=> {
+		if(s.length > 1) 
+		{
+			begin_text = begin_text.replace(s , `<span class="csv-u-highlight">${s}</span>`)
+		}
+	})
+	console.log("terms : " , terms_list)
+	return begin_text
+}
 
+function markText(search , res_div)
+{
+}
 //----------------------------------------------------------------------------------------------
 
 
@@ -107,31 +135,38 @@ app.registerExtension({
 		let style = document.createElement("style") 
 		
 		style.innerHTML = `
+				.csv-u-highlight {
+					background-color : rgb(47, 49, 51);
+					border-radius : 2px;
+					padding : 1px;
+				}
+
 				h1 {
 					text-align : center;
 				}
+
 				.csv-u-search-bar {
 					background-color : white;
 					color : black;
 				}
+					
 				.csv-u-prompt-span {
-					outline : solid;
-					outline-width : 2px;
 					padding : 4px;
 					cursor : pointer;
 					flex-grow : 0.5;
 					width : 50%;
 					font-size : 12px;
+					color : black;
 				}
 				.csv-u-prompt-span:hover {
 					cursor : cell
 				}
 
-				.csv-u-pos-span {
+				.csv-u-pos-span:hover {
 					color : rgb(118, 199, 60);
 				}
 
-				.csv-u-neg-span {
+				.csv-u-neg-span:hover {
 					color : rgb(199, 52, 57);
 				}
 
@@ -146,6 +181,16 @@ app.registerExtension({
 
 				.csv-u-search-bar {
 					width : 100%;
+				}
+
+				.csv-u-result-container {
+					background-color : rgb(20, 20, 20);
+					padding : 4px;
+					border-radius : 8px;
+				}
+				p {
+					background-color : rgb(238, 238, 238);
+					box-shadow: 1px 3px 5px rgba(0, 0, 0, 0.42);
 				}
 		`
 
@@ -186,8 +231,10 @@ app.registerExtension({
 				for( let i = 0 ; i < filtered_list.length ; i++) {
 					let div = document.createElement("div")
 					
-					div.innerHTML = create_prompt_div(filtered_list[i].positive , filtered_list[i].negative)
+					div.innerHTML = create_prompt_div(filtered_list[i].positive , filtered_list[i].negative , search_bar.value)
 					
+					markText(search_bar.value , div)
+
 					widgets.result_list.appendChild(div)
 				}
 
