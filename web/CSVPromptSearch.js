@@ -4,7 +4,7 @@ import { api } from "../../../scripts/api.js";
 
 async function getPromptList(file_path) {
 	
-	//try {
+	try {
 
 		const response = await api.fetchApi("/csv_utils/get_prompts" , {
 			method : "POST" , 
@@ -14,61 +14,77 @@ async function getPromptList(file_path) {
 			})
 		})
 		
-		// if(response.status != 200) {
-		// 	throw new Error("error while searching querying prompts")
-		// }
+		if(response.status != 200) {
+			throw new Error("error while searching querying prompts")
+		}
 
 		const data = await response.json()
 		// console.log(data.prompt_list)
 		return data.prompt_list
 		
-	//}
-	// catch(err) {
-	// 	app.extensionManager.toast.add({
-	// 			severity : "error" , 
-	// 			summary : "Internal Error" , 
-	// 			detail : err , 
-	// 			life : 5000
-	// 		})
-	// }
+	}
+	catch(err) {
+		app.extensionManager.toast.add({
+				severity : "error" , 
+				summary : "Internal Error" , 
+				detail : err , 
+				life : 5000
+			})
+		return []
+	}
 
 
 }
+
 
 function create_prompt_div(pos , neg , search) 
 {
 	
 	return ` 
 		<div class="csv-u-prompt-container">
-			<p class="csv-u-prompt-span csv-u-pos-span"> 
+			<p class="csv-u-prompt-span csv-u-pos-span csv-u-p"> 
 				${pos}\t
 			</p>
 
-			<p class="csv-u-prompt-span csv-u-neg-span">
+			<p class="csv-u-prompt-span csv-u-neg-span csv-u-p">
 				${neg}
 			</p>
 		</div>
 	`
 }
 
+
 function filter_data(prompt_list , search) {
+	
+	if(search.trim().length == 0)
+	{
+		return prompt_list
+	}	
+
 	let minisearch = new MiniSearch(
 		{
 			idField : "id" ,
 			fields : ["positive" , "negative"] , 
 			storeFields : ["positive" , "negative"] ,
-			fuzzy : 2 , 
-			combineWith : "AND"
+			fuzzy : 0.2 , 
+			//combineWith : "AND"
 		}
 	)
 
 	minisearch.addAll(prompt_list)
 
-	const results = minisearch.search(search)
-
+	const suggest = minisearch.autoSuggest(search)[0]?.suggestion
 	
-	console.log(results)
-	//return prompt_list.filter((prompt)=> prompt.positive.includes(search) || prompt.negative.includes(search))
+	
+	let query = search
+	
+	if(suggest)
+		query = suggest
+	
+	const results = minisearch.search(query)
+
+	//console.log("search suggestion :" , suggest , "results : " , results.length)
+
 	return results
 }
 
@@ -83,9 +99,10 @@ function createResultWidget() {
 		result_container.className = "csv-u-result-container"
 
 		// result_container.style.height = "100%"
-		let header = document.createElement("h1")
+		let header = document.createElement("h3")
 			result_container.appendChild(header)
 			header.innerText = "Search List" 
+			header.className = "csv-u-header"
 			
 		let search_bar = document.createElement("input")
 			search_bar.type = "text"
@@ -102,28 +119,10 @@ function createResultWidget() {
 			result_list.appendChild(prompt_list)
 			prompt_list.className = "csv-u-prompt-list"
 		
-
-
 	return {result_container : result_container,  result_list : result_list , search_bar : search_bar}
 }
 
-function highlightSearchText(search , text) {
-	let begin_text = text
 
-	let terms_list = search.split(" ")
-	terms_list.forEach((s)=> {
-		if(s.length > 1) 
-		{
-			begin_text = begin_text.replace(s , `<span class="csv-u-highlight">${s}</span>`)
-		}
-	})
-	console.log("terms : " , terms_list)
-	return begin_text
-}
-
-function markText(search , res_div)
-{
-}
 //----------------------------------------------------------------------------------------------
 
 
@@ -141,15 +140,10 @@ app.registerExtension({
 					padding : 1px;
 				}
 
-				h1 {
+				.csv-u-header {
 					text-align : center;
 				}
 
-				.csv-u-search-bar {
-					background-color : white;
-					color : black;
-				}
-					
 				.csv-u-prompt-span {
 					padding : 4px;
 					cursor : pointer;
@@ -157,9 +151,10 @@ app.registerExtension({
 					width : 50%;
 					font-size : 12px;
 					color : black;
+					
 				}
 				.csv-u-prompt-span:hover {
-					cursor : cell
+					cursor : url("clipboard.svg");
 				}
 
 				.csv-u-pos-span:hover {
@@ -170,9 +165,10 @@ app.registerExtension({
 					color : rgb(199, 52, 57);
 				}
 
+				
 				.csv-u-prompt-container {
 					display : flex;
-					background-color : rgb(255, 255, 255);
+					border-radius : 6px;
 					padding : 6px;
 					margin-top : 6px;
 					margin-bottom : 6px;
@@ -181,6 +177,11 @@ app.registerExtension({
 
 				.csv-u-search-bar {
 					width : 100%;
+					border : none;
+					margin-bottom : 12px;
+					background-color : white;
+					border-radius : 4px;
+					color : black;
 				}
 
 				.csv-u-result-container {
@@ -188,12 +189,18 @@ app.registerExtension({
 					padding : 4px;
 					border-radius : 8px;
 				}
-				p {
+				.csv-u-p {
 					background-color : rgb(238, 238, 238);
 					box-shadow: 1px 3px 5px rgba(0, 0, 0, 0.42);
+					border-radius : 4px;
+					text-align : center;
+					
+				}
+				.csv-u-p:hover {
+					transform : scale(1.02);
+					transition: all 0.02s ease-out;
 				}
 		`
-
 		document.body.appendChild(style)
 	},
 
@@ -203,39 +210,38 @@ app.registerExtension({
 	} ,
 
 	async setup() { 
-		console.log("[CSV tools] extension setup complete")
+		console.log("[CSV tools] Extension setup complete")
 	},
 
 	async nodeCreated(node) {
 	
 		if(node.comfyClass == "CSVPromptSearch") 
 		{	
-			console.log(node.widgets)
 			
-			let widgets = createResultWidget()
+			let result_widgets = createResultWidget()
 			
-			node.addDOMWidget("list-results" , "list" , widgets.result_container)
+			node.addDOMWidget("list-results" , "list" , result_widgets.result_container)
 
-			let search_bar = widgets.search_bar
+			let search_bar_widget = result_widgets.search_bar
 
-			console.log(widgets.result_container)
 			
-			search_bar.addEventListener("input" , async (e)=> {
+			search_bar_widget.addEventListener("input" , async (e)=> {
 				
-				const prompt_list = await getPromptList(node.widgets[0].value)
+				const file_path = node.widgets[0].value
+
+				const prompt_list = await getPromptList(file_path)
 				
-				const filtered_list = filter_data(prompt_list , search_bar.value)
+				const filtered_list = filter_data(prompt_list , search_bar_widget.value)
 				
-				widgets.result_list.innerHTML = ""
+				result_widgets.result_list.innerHTML = ""
 
 				for( let i = 0 ; i < filtered_list.length ; i++) {
+
 					let div = document.createElement("div")
 					
-					div.innerHTML = create_prompt_div(filtered_list[i].positive , filtered_list[i].negative , search_bar.value)
+					div.innerHTML = create_prompt_div(filtered_list[i].positive , filtered_list[i].negative , search_bar_widget.value)
 					
-					markText(search_bar.value , div)
-
-					widgets.result_list.appendChild(div)
+					result_widgets.result_list.appendChild(div)
 				}
 
 				const span_list = Array.from(document.getElementsByClassName("csv-u-prompt-span"))
@@ -252,17 +258,13 @@ app.registerExtension({
 					}) 	
 				});
 
-				}
-			)
-			
+			})
 			
 		}
 	} , 
 	
 	async init() {
-		
-
-
+	
 	} ,
 
 	async setup()
