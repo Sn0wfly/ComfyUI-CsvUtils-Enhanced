@@ -149,8 +149,9 @@ app.registerExtension({
 					cursor : pointer;
 					flex-grow : 0.5;
 					width : 50%;
-					font-size : 12px;
+					font-size : x-small;
 					color : black;
+					font-family : sans-serif;
 					
 				}
 				.csv-u-prompt-span:hover {
@@ -169,10 +170,10 @@ app.registerExtension({
 				.csv-u-prompt-container {
 					display : flex;
 					border-radius : 6px;
-					padding : 6px;
-					margin-top : 6px;
-					margin-bottom : 6px;
-					gap : 6px;
+					padding : 2px;
+					margin-top : 2px;
+					margin-bottom : 2px;
+					gap : 2px;
 				}
 
 				.csv-u-search-bar {
@@ -193,7 +194,7 @@ app.registerExtension({
 					background-color : rgb(238, 238, 238);
 					box-shadow: 1px 3px 5px rgba(0, 0, 0, 0.42);
 					border-radius : 4px;
-					text-align : center;
+					
 					
 				}
 				.csv-u-p:hover {
