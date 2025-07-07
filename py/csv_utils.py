@@ -58,7 +58,7 @@ def get_prompt_list(file_path : str) :
 
 def show_prompt_list(prompt_list) : 
     for prompt in prompt_list : 
-        print(f"pos: {prompt["positive"]}\t neg: {prompt["negative"]}")
+        print("pos: {}\t neg: {}".format(prompt['positive'] , prompt['negative']))
 
 def get_prompt_row(file_path : str , index : int) -> dict[str , str] :
 
