@@ -208,17 +208,30 @@ class CSVHistoryScanner:
                 try:
                     prompt_data = json.loads(img.text['prompt'])
                     print(f"[CSV History Scanner] Processing prompt data for {os.path.basename(image_path)}")
+                    print(f"[CSV History Scanner] Prompt data keys: {list(prompt_data.keys())}")
                     
                     # Buscar nodos CLIPTextEncode en el formato prompt
                     prompts = []
                     for node_id, node_data in prompt_data.items():
+                        print(f"[CSV History Scanner] Node {node_id}: class_type = {node_data.get('class_type', 'unknown')}")
                         if node_data.get('class_type') == 'CLIPTextEncode':
+                            print(f"[CSV History Scanner] Found CLIPTextEncode node: {node_id}")
+                            print(f"[CSV History Scanner] Node data keys: {list(node_data.keys())}")
                             # Buscar en inputs
-                            if 'inputs' in node_data and 'text' in node_data['inputs']:
-                                prompt_text = node_data['inputs']['text']
-                                if prompt_text and prompt_text.strip():
-                                    prompts.append(prompt_text.strip())
-                                    print(f"[CSV History Scanner] Found prompt: {prompt_text[:50]}...")
+                            if 'inputs' in node_data:
+                                print(f"[CSV History Scanner] Inputs: {node_data['inputs']}")
+                                if 'text' in node_data['inputs']:
+                                    prompt_text = node_data['inputs']['text']
+                                    print(f"[CSV History Scanner] Found text in inputs: {prompt_text}")
+                                    if prompt_text and prompt_text.strip():
+                                        prompts.append(prompt_text.strip())
+                                        print(f"[CSV History Scanner] Added prompt: {prompt_text[:50]}...")
+                                else:
+                                    print(f"[CSV History Scanner] No 'text' key in inputs")
+                            else:
+                                print(f"[CSV History Scanner] No 'inputs' key in node data")
+                    
+                    print(f"[CSV History Scanner] Total prompts found: {len(prompts)}")
                     
                     # Asignar prompts
                     if len(prompts) >= 1:
@@ -231,10 +244,12 @@ class CSVHistoryScanner:
                             positive_prompt = prompts[1]
                             negative_prompt = prompts[0]
                     
-                    print(f"[CSV History Scanner] Extracted - Positive: {positive_prompt[:30]}..., Negative: {negative_prompt[:30]}...")
+                    print(f"[CSV History Scanner] Final assignment - Positive: '{positive_prompt}', Negative: '{negative_prompt}'")
                     
                 except Exception as e:
                     print(f"[CSV History Scanner] Error processing prompt metadata: {e}")
+                    import traceback
+                    traceback.print_exc()
             
             # Método 2: metadata 'workflow' (formato alternativo)
             if not positive_prompt and hasattr(img, 'text') and 'workflow' in img.text:
