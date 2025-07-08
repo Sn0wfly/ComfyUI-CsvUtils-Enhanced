@@ -353,10 +353,33 @@ app.registerExtension({
 	async loadedGraphNode() {
 		let style = document.createElement("style");
 		style.innerHTML = `
-            .csv-u-result-container { background-color: rgb(20, 20, 20); padding: 8px; border-radius: 8px; }
-            .csv-u-header { text-align: center; margin-top: 0; margin-bottom: 10px; }
-            .csv-u-search-bar { width: 100%; border: none; margin-bottom: 12px; background-color: white; border-radius: 4px; color: black; padding: 4px; box-sizing: border-box; }
-            .csv-u-result-list { overflow-y: scroll; max-height: 300px; /* Limita la altura para que el nodo no sea gigante */ }
+            .csv-u-result-container { 
+                background-color: rgb(20, 20, 20); 
+                padding: 8px; 
+                border-radius: 8px; 
+                height: 100%; 
+                display: flex; 
+                flex-direction: column; 
+                min-height: 200px;
+            }
+            .csv-u-header { text-align: center; margin-top: 0; margin-bottom: 10px; flex-shrink: 0; }
+            .csv-u-search-bar { 
+                width: 100%; 
+                border: none; 
+                margin-bottom: 12px; 
+                background-color: white; 
+                border-radius: 4px; 
+                color: black; 
+                padding: 4px; 
+                box-sizing: border-box; 
+                flex-shrink: 0;
+            }
+            .csv-u-result-list { 
+                overflow-y: auto; 
+                flex: 1; 
+                min-height: 150px;
+                /* Se adapta dinámicamente al espacio disponible */
+            }
 			.csv-u-prompt-container { display: flex; align-items: center; border-radius: 6px; padding: 5px; margin: 4px; gap: 8px; background-color: rgb(40, 40, 40); }
             .csv-u-text-prompts { display: flex; flex-direction: column; flex-grow: 1; gap: 4px; }
             .csv-u-image-container { position: relative; }
