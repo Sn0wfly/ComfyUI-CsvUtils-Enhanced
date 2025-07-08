@@ -1,8 +1,10 @@
 import csv
 import os
+import shutil
 from aiohttp import web
 import server
 import folder_paths
+import json
 
 
 DELIMITER = ","
@@ -22,6 +24,129 @@ def save_to_csv(file_path : str , pos_prompt :str , neg_prompt :str, image_path:
             csv_file.close()
 
         return True
+
+def save_multiple_to_csv_with_move(entries: list) -> dict:
+    """
+    Guarda múltiples entradas en CSV y mueve imágenes a preview folder
+    """
+    try:
+        output_dir = folder_paths.output_directory
+        
+        # Hardcodear ubicación del CSV en output folder
+        csv_file_path = os.path.join(output_dir, "prompt_history.csv")
+        
+        # Asegurar que existe el directorio preview
+        preview_dir = os.path.join(output_dir, "preview")
+        os.makedirs(preview_dir, exist_ok=True)
+        
+        saved_count = 0
+        skipped_count = 0
+        moved_count = 0
+        
+        with open(csv_file_path, 'a', newline='', encoding="utf8") as csv_file:
+            writer_object = csv.writer(csv_file, delimiter=DELIMITER)
+            
+            for entry in entries:
+                pos_prompt = entry.get('positive_prompt', '').strip()
+                neg_prompt = entry.get('negative_prompt', '').strip()
+                original_image_path = entry.get('image_path', '').strip()
+                
+                if not original_image_path:
+                    continue
+                    
+                # Construir rutas completas
+                source_path = os.path.join(output_dir, original_image_path)
+                filename = os.path.basename(original_image_path)
+                dest_path = os.path.join(preview_dir, filename)
+                preview_relative_path = f"preview/{filename}"
+                
+                # Verificar si ya existe el prompt (con la nueva ruta)
+                if not already_exists(csv_file_path, pos_prompt, neg_prompt):
+                    try:
+                        # Mover imagen a preview folder (solo si no está ya ahí)
+                        if os.path.exists(source_path) and source_path != dest_path:
+                            if os.path.exists(dest_path):
+                                # Si ya existe en destino, generar nombre único
+                                base_name, ext = os.path.splitext(filename)
+                                counter = 1
+                                while os.path.exists(dest_path):
+                                    new_filename = f"{base_name}_{counter}{ext}"
+                                    dest_path = os.path.join(preview_dir, new_filename)
+                                    preview_relative_path = f"preview/{new_filename}"
+                                    counter += 1
+                            
+                            shutil.move(source_path, dest_path)
+                            moved_count += 1
+                            print(f"[CSV] Moved image: {original_image_path} -> {preview_relative_path}")
+                        
+                        # Guardar en CSV con la nueva ruta en preview
+                        writer_object.writerow([pos_prompt, neg_prompt, preview_relative_path])
+                        saved_count += 1
+                        print(f"[CSV] Saved: {pos_prompt[:50]}...")
+                        
+                    except Exception as e:
+                        print(f"[CSV] Error moving image {original_image_path}: {e}")
+                        # Si falla el movimiento, guardar con ruta original
+                        writer_object.writerow([pos_prompt, neg_prompt, original_image_path])
+                        saved_count += 1
+                else:
+                    skipped_count += 1
+                    print(f"[CSV] Skipped duplicate: {pos_prompt[:50]}...")
+        
+        return {
+            'success': True,
+            'saved': saved_count,
+            'skipped': skipped_count,
+            'moved': moved_count,
+            'csv_path': csv_file_path,
+            'message': f'Saved {saved_count} prompts, moved {moved_count} images to preview folder. Skipped {skipped_count} duplicates.'
+        }
+        
+    except Exception as e:
+        print(f"[CSV] Error saving with move: {e}")
+        return {
+            'success': False,
+            'message': str(e)
+        }
+
+def save_multiple_to_csv(file_path: str, entries: list) -> dict:
+    """
+    Guarda múltiples entradas en CSV, evitando duplicados (versión original)
+    """
+    try:
+        saved_count = 0
+        skipped_count = 0
+        
+        with open(file_path, 'a', newline='', encoding="utf8") as csv_file:
+            writer_object = csv.writer(csv_file, delimiter=DELIMITER)
+            
+            for entry in entries:
+                pos_prompt = entry.get('positive_prompt', '').strip()
+                neg_prompt = entry.get('negative_prompt', '').strip()
+                image_path = entry.get('image_path', '').strip()
+                
+                # Verificar si ya existe
+                if not already_exists(file_path, pos_prompt, neg_prompt):
+                    writer_object.writerow([pos_prompt, neg_prompt, image_path])
+                    saved_count += 1
+                    print(f"[CSV] Saved: {pos_prompt[:50]}...")
+                else:
+                    skipped_count += 1
+                    print(f"[CSV] Skipped duplicate: {pos_prompt[:50]}...")
+        
+        return {
+            'success': True,
+            'saved': saved_count,
+            'skipped': skipped_count,
+            'message': f'Saved {saved_count} entries, skipped {skipped_count} duplicates'
+        }
+        
+    except Exception as e:
+        print(f"[CSV] Error saving multiple entries: {e}")
+        return {
+            'success': False,
+            'message': str(e)
+        }
 
 def already_exists(file_path : str , pos_prompt : str , neg_prompt : str) :
         
@@ -140,4 +265,33 @@ async def csv_image_view(request):
     
     print(f"[CSV] Image not found: {filename}")
     raise web.HTTPNotFound(text=f"Image not found: {filename}")
+
+# Endpoint para guardar entradas múltiples desde History Scanner
+@server.PromptServer.instance.routes.post("/csv_utils/save_to_csv")
+async def save_to_csv_endpoint(request):
+    """
+    Endpoint para guardar múltiples entradas en CSV desde el History Scanner
+    Ahora con funcionalidad de mover imágenes a preview folder
+    """
+    try:
+        data = await request.json()
+        entries = data.get('entries', [])
+        
+        if not entries:
+            return web.json_response({
+                'success': False,
+                'message': 'No entries provided'
+            })
+        
+        # Usar la nueva función que mueve imágenes y hardcodea la ubicación
+        result = save_multiple_to_csv_with_move(entries)
+        
+        return web.json_response(result)
+        
+    except Exception as e:
+        print(f"[CSV] Error in save_to_csv_endpoint: {e}")
+        return web.json_response({
+            'success': False,
+            'message': str(e)
+        })
      

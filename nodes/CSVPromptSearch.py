@@ -5,7 +5,7 @@ class CSVPromptSearch :
 
         return {
             "required" : {
-                "file_path" : ("STRING",) , 
+                "file_path" : ("STRING", {"default": "output/prompt_history.csv"}), 
             }
         }
     

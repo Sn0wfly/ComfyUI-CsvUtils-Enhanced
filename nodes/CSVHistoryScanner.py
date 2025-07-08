@@ -13,61 +13,48 @@ except ImportError:
 
 class CSVHistoryScanner:
     """
-    Nodo para escanear el historial de imágenes generadas y extraer prompts
+    Escanea imágenes generadas, extrae prompts y organiza en colección preview
     """
     
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "scan_folder": (["output", "output/preview"], {"default": "output"}),
-                "max_images": ("INT", {"default": 50, "min": 1, "max": 500}),
-                "sort_by": (["date_desc", "date_asc", "name"], {"default": "date_desc"}),
-            },
-            "optional": {
-                "refresh": ("BOOLEAN", {"default": False}),
+                "max_images": ("INT", {"default": 50, "min": 10, "max": 200}),
+                "scan_button": ("BOOLEAN", {"default": False, "label_on": "Scan Images", "label_off": "Scan Images"}),
             }
         }
     
-    RETURN_TYPES = ("STRING", "INT")
-    RETURN_NAMES = ("scan_results", "images_found")
-    FUNCTION = "scan_history"
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("status",)
+    FUNCTION = "scan_and_display"
     CATEGORY = "CSV Utils"
+    OUTPUT_NODE = True  # Esto es importante para que se ejecute y envíe datos al frontend
     
-    def scan_history(self, scan_folder, max_images, sort_by, refresh=False):
+    def scan_and_display(self, max_images, scan_button):
         """
-        Escanea las imágenes generadas y extrae los prompts de su metadata
+        Escanea imágenes del output y prepara datos para la interfaz web
+        Las imágenes seleccionadas se moverán a output/preview/ y se guardarán en output/prompt_history.csv
         """
         try:
-            # Determinar el folder a escanear
-            if scan_folder == "output":
-                scan_path = folder_paths.output_directory
-            else:
-                scan_path = os.path.join(folder_paths.output_directory, "preview")
+            output_path = folder_paths.output_directory
             
-            if not os.path.exists(scan_path):
-                return (f"Error: Folder no existe: {scan_path}", 0)
+            if not os.path.exists(output_path):
+                return {"ui": {"scan_results": []}, "result": ("Error: Output folder no existe",)}
             
-            # Buscar archivos PNG
+            # Buscar archivos PNG ordenados por fecha (más recientes primero)
             png_files = []
-            for file in os.listdir(scan_path):
+            for file in os.listdir(output_path):
                 if file.lower().endswith('.png'):
-                    file_path = os.path.join(scan_path, file)
+                    file_path = os.path.join(output_path, file)
                     png_files.append({
                         'filename': file,
                         'path': file_path,
                         'mtime': os.path.getmtime(file_path)
                     })
             
-            # Ordenar archivos
-            if sort_by == "date_desc":
-                png_files.sort(key=lambda x: x['mtime'], reverse=True)
-            elif sort_by == "date_asc":
-                png_files.sort(key=lambda x: x['mtime'])
-            else:  # name
-                png_files.sort(key=lambda x: x['filename'])
-            
-            # Limitar cantidad
+            # Ordenar por fecha (más recientes primero)
+            png_files.sort(key=lambda x: x['mtime'], reverse=True)
             png_files = png_files[:max_images]
             
             results = []
@@ -76,14 +63,14 @@ class CSVHistoryScanner:
             for file_info in png_files:
                 try:
                     prompts = self.extract_prompts_from_image(file_info['path'])
-                    if prompts:
+                    if prompts and (prompts.get('positive') or prompts.get('negative')):
                         result = {
                             'id': processed_count,
                             'filename': file_info['filename'],
                             'positive_prompt': prompts.get('positive', ''),
                             'negative_prompt': prompts.get('negative', ''),
                             'date': datetime.fromtimestamp(file_info['mtime']).strftime("%Y-%m-%d %H:%M:%S"),
-                            'relative_path': os.path.relpath(file_info['path'], folder_paths.output_directory).replace('\\', '/'),
+                            'relative_path': file_info['filename'],  # Simplificado: solo el nombre del archivo
                             'selected': False
                         }
                         results.append(result)
@@ -93,13 +80,27 @@ class CSVHistoryScanner:
                     print(f"Error procesando {file_info['filename']}: {e}")
                     continue
             
-            # Convertir a JSON string para el frontend
-            results_json = json.dumps(results, ensure_ascii=False, indent=2)
+            status_msg = f"✅ Found {len(results)} images with prompts (from {len(png_files)} total PNG files)"
+            status_msg += f"\nSelected images will be moved to output/preview/ and saved to output/prompt_history.csv"
             
-            return (results_json, len(results))
+            # Pasar resultados al frontend
+            return {
+                "ui": {
+                    "scan_results": results,
+                    "status": status_msg
+                },
+                "result": (status_msg,)
+            }
             
         except Exception as e:
-            return (f"Error: {str(e)}", 0)
+            error_msg = f"❌ Error: {str(e)}"
+            return {
+                "ui": {
+                    "scan_results": [],
+                    "status": error_msg
+                },
+                "result": (error_msg,)
+            }
     
     def extract_prompts_from_image(self, image_path):
         """
@@ -122,7 +123,7 @@ class CSVHistoryScanner:
                         if prompt_text and prompt_text.strip():
                             prompts.append(prompt_text.strip())
             
-            # Heurística para detectar positivo vs negativo
+            # Detectar positivo vs negativo
             positive_prompt = ""
             negative_prompt = ""
             
@@ -147,7 +148,7 @@ class CSVHistoryScanner:
     
     def seems_negative_prompt(self, prompt):
         """
-        Heurística simple para detectar si un prompt es negativo
+        Detecta si un prompt parece ser negativo
         """
         negative_indicators = [
             'low quality', 'blurry', 'bad anatomy', 'deformed', 
@@ -156,9 +157,7 @@ class CSVHistoryScanner:
         ]
         
         prompt_lower = prompt.lower()
-        negative_count = sum(1 for indicator in negative_indicators if indicator in prompt_lower)
-        
-        return negative_count >= 2  # Si tiene 2+ indicadores negativos
+        return sum(1 for indicator in negative_indicators if indicator in prompt_lower) >= 2
 
 
 # Registrar el nodo

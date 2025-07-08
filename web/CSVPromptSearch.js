@@ -3,6 +3,35 @@ import { api } from "../../../scripts/api.js";
 
 // MiniSearch no está siendo utilizado en este código, pero se mantiene por si se quiere añadir en el futuro.
 
+// Constantes para localStorage
+const STORAGE_KEY_CSV_PATH = 'comfyui_csv_utils_last_path';
+
+// Función para guardar la última ruta usada
+function saveLastUsedPath(filePath) {
+	if (filePath && filePath.trim() !== '') {
+		try {
+			localStorage.setItem(STORAGE_KEY_CSV_PATH, filePath.trim());
+			console.log('[CSV Utils] Saved last used path:', filePath);
+		} catch (e) {
+			console.warn('[CSV Utils] Could not save path to localStorage:', e);
+		}
+	}
+}
+
+// Función para obtener la última ruta usada
+function getLastUsedPath() {
+	try {
+		const lastPath = localStorage.getItem(STORAGE_KEY_CSV_PATH);
+		if (lastPath) {
+			console.log('[CSV Utils] Retrieved last used path:', lastPath);
+			return lastPath;
+		}
+	} catch (e) {
+		console.warn('[CSV Utils] Could not retrieve path from localStorage:', e);
+	}
+	return '';
+}
+
 async function getPromptList(file_path) {
 	try {
 		const response = await api.fetchApi("/csv_utils/get_prompts" , {
@@ -25,48 +54,48 @@ async function getPromptList(file_path) {
 }
 
 function create_prompt_div(id, pos, neg, image_path) {
-    let imageElement = '';
-    
-    if (image_path) {
-        // Detectar si hay múltiples imágenes (separadas por ; o ,)
-        const imagePaths = image_path.split(/[;,]/).map(p => p.trim()).filter(p => p.length > 0);
-        const firstImagePath = imagePaths[0];
-        
-        let imageUrl = '';
-        let processedPath = firstImagePath;
-        
-        // Normalizar separadores de ruta a forward slash
-        processedPath = firstImagePath.replace(/\\/g, '/');
-        
-        // Limpiar rutas absolutas manteniendo subdirectorios
-        if (processedPath.includes('/output/')) {
-            // Extraer todo después de "output/"
-            const outputMatch = processedPath.match(/output\/(.+)/);
-            if (outputMatch) {
-                processedPath = outputMatch[1];
-            }
-        }
-        
-        // Usar nuestro endpoint personalizado que soporta subdirectorios
-        imageUrl = `/csv_image_view?filename=${encodeURIComponent(processedPath)}`;
-        
-        console.log(`[DEBUG] Imagen con subdirectorio: ${firstImagePath} -> procesada: ${processedPath} -> URL: ${imageUrl}`);
-        
-        // Crear contador si hay múltiples imágenes
-        const counterElement = imagePaths.length > 1 ? 
-            `<div class="csv-u-image-counter">1/${imagePaths.length}</div>` : '';
-            
-        imageElement = `
-            <div class="csv-u-image-container">
-                <img id="csv-preview-img-${id}" src="${imageUrl}" class="csv-u-preview-img" title="Click to zoom">
-                ${counterElement}
-            </div>
-        `;
-    }
+	let imageElement = '';
+	
+	if (image_path) {
+		// Detectar si hay múltiples imágenes (separadas por ; o ,)
+		const imagePaths = image_path.split(/[;,]/).map(p => p.trim()).filter(p => p.length > 0);
+		const firstImagePath = imagePaths[0];
+		
+		let imageUrl = '';
+		let processedPath = firstImagePath;
+		
+		// Normalizar separadores de ruta a forward slash
+		processedPath = firstImagePath.replace(/\\/g, '/');
+		
+		// Limpiar rutas absolutas manteniendo subdirectorios
+		if (processedPath.includes('/output/')) {
+			// Extraer todo después de "output/"
+			const outputMatch = processedPath.match(/output\/(.+)/);
+			if (outputMatch) {
+				processedPath = outputMatch[1];
+			}
+		}
+		
+		// Usar nuestro endpoint personalizado que soporta subdirectorios
+		imageUrl = `/csv_image_view?filename=${encodeURIComponent(processedPath)}`;
+		
+		console.log(`[DEBUG] Imagen con subdirectorio: ${firstImagePath} -> procesada: ${processedPath} -> URL: ${imageUrl}`);
+		
+		// Crear contador si hay múltiples imágenes
+		const counterElement = imagePaths.length > 1 ? 
+			`<div class="csv-u-image-counter">1/${imagePaths.length}</div>` : '';
+			
+		imageElement = `
+			<div class="csv-u-image-container">
+				<img id="csv-preview-img-${id}" src="${imageUrl}" class="csv-u-preview-img" title="Click to zoom">
+				${counterElement}
+			</div>
+		`;
+	}
 
 	return `
 		<div class="csv-u-prompt-container">
-            ${imageElement}
+			${imageElement}
 			<div class="csv-u-text-prompts">
 				<p class="csv-u-prompt-span csv-u-pos-span csv-u-p" title="Click to copy">${pos}</p>
 				<p class="csv-u-prompt-span csv-u-neg-span csv-u-p" title="Click to copy">${neg}</p>
@@ -129,7 +158,7 @@ function createImageModal() {
 	const prevBtn = modal.querySelector('#csv-u-prev-btn');
 	const nextBtn = modal.querySelector('#csv-u-next-btn');
 
-		// Función para actualizar imagen actual
+	// Función para actualizar imagen actual
 	function updateCurrentImage() {
 		const imagePath = currentImages[currentImageIndex];
 		const imageUrl = processImagePath(imagePath);
@@ -460,12 +489,32 @@ app.registerExtension({
         const { openModal } = createImageModal(); // Crear modal para este nodo
         node.addDOMWidget("list-results", "list", result_container);
 
+        // Establecer valor por defecto desde localStorage si está disponible
+        const lastUsedPath = getLastUsedPath();
+        if (lastUsedPath && (!node.widgets[0].value || node.widgets[0].value.trim() === '')) {
+            node.widgets[0].value = lastUsedPath;
+            console.log('[CSV Utils] Set default path from localStorage:', lastUsedPath);
+            
+            // Mostrar toast informativo (con delay para no solaparse con otros toasts)
+            setTimeout(() => {
+                app.extensionManager.toast.add({
+                    severity: "info",
+                    summary: "📁 CSV Path Remembered",
+                    detail: `Loaded: ${lastUsedPath}`,
+                    life: 3000
+                });
+            }, 500);
+        }
+
         const updateList = async () => {
             const filePath = node.widgets[0].value;
             if (!filePath || filePath.trim() === '') {
                 result_list.innerHTML = "<p style='color: #888; text-align: center;'>Please specify a CSV file path.</p>";
                 return;
             }
+
+            // Guardar la ruta cuando se use exitosamente
+            saveLastUsedPath(filePath);
 
             try {
                 const promptList = await getPromptList(filePath);
@@ -543,6 +592,10 @@ app.registerExtension({
         const originalCallback = node.widgets[0].callback;
         node.widgets[0].callback = (value) => {
             if(originalCallback) originalCallback(value);
+            // Guardar la nueva ruta cuando se cambie manualmente
+            if (value && value.trim() !== '') {
+                saveLastUsedPath(value);
+            }
             updateList();
         };
 
