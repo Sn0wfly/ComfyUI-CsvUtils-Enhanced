@@ -200,62 +200,84 @@ class CSVHistoryScanner:
             print(f"[CSV History Scanner] {os.path.basename(image_path)} metadata keys: {metadata_keys}")
             
             # Verificar diferentes formas de metadata
-            workflow_data = None
-            
-            # Método 1: metadata 'workflow'
-            if hasattr(img, 'text') and 'workflow' in img.text:
-                try:
-                    workflow_data = json.loads(img.text['workflow'])
-                except:
-                    pass
-            
-            # Método 2: metadata 'prompt' (formato alternativo)
-            if not workflow_data and hasattr(img, 'text') and 'prompt' in img.text:
-                try:
-                    prompt_data = json.loads(img.text['prompt'])
-                    # Convertir formato prompt a formato workflow si es necesario
-                    workflow_data = {'nodes': []}
-                    for node_id, node_data in prompt_data.items():
-                        if node_data.get('class_type') == 'CLIPTextEncode':
-                            workflow_data['nodes'].append({
-                                'type': 'CLIPTextEncode',
-                                'widgets_values': [node_data.get('inputs', {}).get('text', '')]
-                            })
-                except:
-                    pass
-            
-            if not workflow_data:
-                print(f"[CSV History Scanner] No valid workflow data in {os.path.basename(image_path)}")
-                return None
-                
-            # Buscar nodos CLIPTextEncode
-            prompts = []
-            for node in workflow_data.get('nodes', []):
-                if node.get('type') == 'CLIPTextEncode':
-                    if 'widgets_values' in node and node['widgets_values']:
-                        prompt_text = node['widgets_values'][0]
-                        if prompt_text and prompt_text.strip():
-                            prompts.append(prompt_text.strip())
-            
-            # Detectar positivo vs negativo
             positive_prompt = ""
             negative_prompt = ""
             
-            if len(prompts) >= 1:
-                positive_prompt = prompts[0]
-            if len(prompts) >= 2:
-                negative_prompt = prompts[1]
+            # Método 1: metadata 'prompt' (más común en vast.ai)
+            if hasattr(img, 'text') and 'prompt' in img.text:
+                try:
+                    prompt_data = json.loads(img.text['prompt'])
+                    print(f"[CSV History Scanner] Processing prompt data for {os.path.basename(image_path)}")
+                    
+                    # Buscar nodos CLIPTextEncode en el formato prompt
+                    prompts = []
+                    for node_id, node_data in prompt_data.items():
+                        if node_data.get('class_type') == 'CLIPTextEncode':
+                            # Buscar en inputs
+                            if 'inputs' in node_data and 'text' in node_data['inputs']:
+                                prompt_text = node_data['inputs']['text']
+                                if prompt_text and prompt_text.strip():
+                                    prompts.append(prompt_text.strip())
+                                    print(f"[CSV History Scanner] Found prompt: {prompt_text[:50]}...")
+                    
+                    # Asignar prompts
+                    if len(prompts) >= 1:
+                        positive_prompt = prompts[0]
+                    if len(prompts) >= 2:
+                        negative_prompt = prompts[1]
+                        
+                        # Intercambiar si el primero parece negativo
+                        if self.seems_negative_prompt(prompts[0]) and not self.seems_negative_prompt(prompts[1]):
+                            positive_prompt = prompts[1]
+                            negative_prompt = prompts[0]
+                    
+                    print(f"[CSV History Scanner] Extracted - Positive: {positive_prompt[:30]}..., Negative: {negative_prompt[:30]}...")
+                    
+                except Exception as e:
+                    print(f"[CSV History Scanner] Error processing prompt metadata: {e}")
+            
+            # Método 2: metadata 'workflow' (formato alternativo)
+            if not positive_prompt and hasattr(img, 'text') and 'workflow' in img.text:
+                try:
+                    workflow_data = json.loads(img.text['workflow'])
+                    print(f"[CSV History Scanner] Processing workflow data for {os.path.basename(image_path)}")
+                    
+                    # Buscar nodos CLIPTextEncode
+                    prompts = []
+                    for node in workflow_data.get('nodes', []):
+                        if node.get('type') == 'CLIPTextEncode':
+                            if 'widgets_values' in node and node['widgets_values']:
+                                prompt_text = node['widgets_values'][0]
+                                if prompt_text and prompt_text.strip():
+                                    prompts.append(prompt_text.strip())
+                                    print(f"[CSV History Scanner] Found workflow prompt: {prompt_text[:50]}...")
+                    
+                    # Asignar prompts
+                    if len(prompts) >= 1:
+                        positive_prompt = prompts[0]
+                    if len(prompts) >= 2:
+                        negative_prompt = prompts[1]
+                        
+                        # Intercambiar si el primero parece negativo
+                        if self.seems_negative_prompt(prompts[0]) and not self.seems_negative_prompt(prompts[1]):
+                            positive_prompt = prompts[1]
+                            negative_prompt = prompts[0]
+                    
+                    print(f"[CSV History Scanner] Extracted from workflow - Positive: {positive_prompt[:30]}..., Negative: {negative_prompt[:30]}...")
+                    
+                except Exception as e:
+                    print(f"[CSV History Scanner] Error processing workflow metadata: {e}")
+            
+            # Verificar que obtuvimos algo
+            if positive_prompt or negative_prompt:
+                return {
+                    'positive': positive_prompt,
+                    'negative': negative_prompt
+                }
+            else:
+                print(f"[CSV History Scanner] No valid prompts found in {os.path.basename(image_path)}")
+                return None
                 
-                # Intercambiar si el primero parece negativo
-                if self.seems_negative_prompt(prompts[0]) and not self.seems_negative_prompt(prompts[1]):
-                    positive_prompt = prompts[1]
-                    negative_prompt = prompts[0]
-            
-            return {
-                'positive': positive_prompt,
-                'negative': negative_prompt
-            }
-            
         except Exception as e:
             print(f"[CSV History Scanner] Error extracting prompts from {image_path}: {e}")
             return None
