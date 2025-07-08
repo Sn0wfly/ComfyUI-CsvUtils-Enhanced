@@ -214,6 +214,8 @@ class CSVHistoryScanner:
                     prompts = []
                     for node_id, node_data in prompt_data.items():
                         print(f"[CSV History Scanner] Node {node_id}: class_type = {node_data.get('class_type', 'unknown')}")
+                        
+                        # Nodos estándar CLIPTextEncode
                         if node_data.get('class_type') == 'CLIPTextEncode':
                             print(f"[CSV History Scanner] Found CLIPTextEncode node: {node_id}")
                             print(f"[CSV History Scanner] Node data keys: {list(node_data.keys())}")
@@ -230,6 +232,42 @@ class CSVHistoryScanner:
                                     print(f"[CSV History Scanner] No 'text' key in inputs")
                             else:
                                 print(f"[CSV History Scanner] No 'inputs' key in node data")
+                        
+                        # Nodos Efficiency (común en vast.ai)
+                        elif node_data.get('class_type') == 'Efficient Loader':
+                            print(f"[CSV History Scanner] Found Efficient Loader node: {node_id}")
+                            print(f"[CSV History Scanner] Node data keys: {list(node_data.keys())}")
+                            if 'inputs' in node_data:
+                                print(f"[CSV History Scanner] Efficient Loader inputs: {node_data['inputs']}")
+                                # Los prompts en Efficient Loader suelen estar en 'positive' y 'negative'
+                                if 'positive' in node_data['inputs']:
+                                    pos_text = node_data['inputs']['positive']
+                                    print(f"[CSV History Scanner] Found positive text: {pos_text}")
+                                    if pos_text and pos_text.strip():
+                                        prompts.append(pos_text.strip())
+                                        print(f"[CSV History Scanner] Added positive prompt: {pos_text[:50]}...")
+                                
+                                if 'negative' in node_data['inputs']:
+                                    neg_text = node_data['inputs']['negative']
+                                    print(f"[CSV History Scanner] Found negative text: {neg_text}")
+                                    if neg_text and neg_text.strip():
+                                        prompts.append(neg_text.strip())
+                                        print(f"[CSV History Scanner] Added negative prompt: {neg_text[:50]}...")
+                            else:
+                                print(f"[CSV History Scanner] No 'inputs' key in Efficient Loader")
+                        
+                        # Otros nodos que podrían contener prompts
+                        elif 'text' in node_data.get('class_type', '').lower() or 'prompt' in node_data.get('class_type', '').lower():
+                            print(f"[CSV History Scanner] Found potential text node: {node_id} ({node_data.get('class_type')})")
+                            if 'inputs' in node_data:
+                                print(f"[CSV History Scanner] Text node inputs: {node_data['inputs']}")
+                                # Buscar cualquier campo que pueda contener texto
+                                for key, value in node_data['inputs'].items():
+                                    if isinstance(value, str) and len(value) > 10:  # Probablemente un prompt
+                                        print(f"[CSV History Scanner] Found text in {key}: {value}")
+                                        if value.strip():
+                                            prompts.append(value.strip())
+                                            print(f"[CSV History Scanner] Added text prompt: {value[:50]}...")
                     
                     print(f"[CSV History Scanner] Total prompts found: {len(prompts)}")
                     
