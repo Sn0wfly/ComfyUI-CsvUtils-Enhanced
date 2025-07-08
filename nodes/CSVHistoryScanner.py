@@ -50,7 +50,7 @@ class CSVHistoryScanner:
             if not os.access(output_path, os.R_OK):
                 return {"ui": {"scan_results": []}, "result": (f"Error: Cannot read output folder: {output_path}",)}
             
-            # Buscar archivos PNG con múltiples métodos
+            # Buscar archivos PNG con múltiples métodos - SIN LÍMITE para análisis
             png_files = self.find_png_files(output_path, max_images)
             print(f"[CSV History Scanner] Found {len(png_files)} PNG files")
             
@@ -60,15 +60,25 @@ class CSVHistoryScanner:
                 print(f"[CSV History Scanner] Alternative search found: {len(alt_files)} files")
                 return {"ui": {"scan_results": []}, "result": (f"No PNG files found in {output_path}. Alternative search found {len(alt_files)} files. Check permissions and metadata.",)}
             
-            results = []
+            # Procesar TODAS las imágenes para extraer prompts
+            prompt_groups = {}  # {prompt_key: [images]}
             processed_count = 0
             metadata_count = 0
+            
+            print(f"[CSV History Scanner] Processing {len(png_files)} images for prompt extraction...")
             
             for file_info in png_files:
                 try:
                     prompts = self.extract_prompts_from_image(file_info['path'])
                     if prompts and (prompts.get('positive') or prompts.get('negative')):
-                        result = {
+                        # Crear clave única para agrupar prompts idénticos
+                        prompt_key = f"{prompts.get('positive', '')}<SEP>{prompts.get('negative', '')}"
+                        
+                        # Agregar imagen al grupo
+                        if prompt_key not in prompt_groups:
+                            prompt_groups[prompt_key] = []
+                        
+                        image_data = {
                             'id': processed_count,
                             'filename': file_info['filename'],
                             'positive_prompt': prompts.get('positive', ''),
@@ -77,18 +87,39 @@ class CSVHistoryScanner:
                             'relative_path': file_info['relative_path'],
                             'selected': False
                         }
-                        results.append(result)
+                        
+                        prompt_groups[prompt_key].append(image_data)
                         processed_count += 1
                         metadata_count += 1
-                    else:
-                        # Archivo PNG sin metadata válida
-                        pass
                         
                 except Exception as e:
                     print(f"[CSV History Scanner] Error processing {file_info['filename']}: {e}")
                     continue
             
-            status_msg = f"✅ Found {len(results)} images with prompts (from {len(png_files)} PNG files, {metadata_count} with metadata)"
+            # Limitar a máximo 10 imágenes por grupo de prompt
+            results = []
+            total_groups = len(prompt_groups)
+            total_images_shown = 0
+            
+            print(f"[CSV History Scanner] Found {total_groups} unique prompt groups")
+            
+            for prompt_key, images in prompt_groups.items():
+                # Ordenar por fecha (más recientes primero) y tomar máximo 10
+                images.sort(key=lambda x: x['date'], reverse=True)
+                limited_images = images[:10]  # Máximo 10 imágenes por prompt
+                
+                # Re-asignar IDs secuenciales
+                for i, img in enumerate(limited_images):
+                    img['id'] = len(results) + i
+                
+                results.extend(limited_images)
+                total_images_shown += len(limited_images)
+                
+                if len(images) > 10:
+                    print(f"[CSV History Scanner] Prompt group '{images[0]['positive_prompt'][:50]}...' had {len(images)} images, showing 10 most recent")
+            
+            status_msg = f"✅ Found {total_groups} unique prompts with {metadata_count} total images"
+            status_msg += f"\nShowing {total_images_shown} images (max 10 per prompt)"
             status_msg += f"\nOutput folder: {output_path}"
             status_msg += f"\nSelected images will be moved to output/preview/ and saved to output/prompt_history.csv"
             
