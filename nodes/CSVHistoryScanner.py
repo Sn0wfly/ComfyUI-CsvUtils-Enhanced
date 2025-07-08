@@ -2,7 +2,14 @@ import os
 import json
 from PIL import Image
 from datetime import datetime
-import folder_paths
+
+try:
+    import folder_paths
+except ImportError:
+    # Fallback for testing outside ComfyUI
+    class FolderPaths:
+        output_directory = "C:\\ComfyUI\\output"
+    folder_paths = FolderPaths()
 
 class CSVHistoryScanner:
     """

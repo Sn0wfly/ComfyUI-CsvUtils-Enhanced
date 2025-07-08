@@ -52,15 +52,23 @@ print("[CSV utils] csv server routes init")
 WEB_DIRECTORY = "./web"
 
 NODE_CLASS_MAPPINGS = {
+    # Nombres nuevos (recomendados)
     "CSVPromptSaver": CSVPromptSaver,
     "CSVPromptSearch": CSVPromptSearch,
     "CSVHistoryScanner": CSVHistoryScanner,
+    
+    # Compatibilidad hacia atrás (nombres viejos)
+    "CSVPromptSave": CSVPromptSaver,  # Mapear nombre viejo al nuevo
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
+    # Nombres nuevos
     "CSVPromptSaver": "CSV Prompt Saver",
-    "CSVPromptSearch": "CSV Prompt Search",
+    "CSVPromptSearch": "CSV Prompt Search", 
     "CSVHistoryScanner": "CSV History Scanner",
+    
+    # Compatibilidad hacia atrás
+    "CSVPromptSave": "CSV Prompt Saver (Legacy)",
 }
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]

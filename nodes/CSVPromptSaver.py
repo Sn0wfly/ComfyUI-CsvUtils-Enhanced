@@ -1,4 +1,4 @@
-class CSVPromptSave : 
+class CSVPromptSaver: 
     @classmethod
     def INPUT_TYPES(s) : 
 
