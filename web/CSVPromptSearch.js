@@ -35,8 +35,8 @@ function getLastUsedPath() {
 async function getPromptList(file_path) {
 	try {
 		const response = await api.fetchApi("/csv_utils/get_prompts" , {
-			method : "POST" ,
-			headers : {"Content-Type" : "application/json"} ,
+			method : "POST" , 
+			headers : {"Content-Type" : "application/json"} , 
 			body : JSON.stringify({ file_path : file_path })
 		});
 		if(response.status != 200) { throw new Error("Error querying prompts"); }
@@ -44,10 +44,10 @@ async function getPromptList(file_path) {
 		return data.prompt_list;
 	} catch(err) {
 		app.extensionManager.toast.add({
-			severity : "error" ,
-			summary : "Internal Error" ,
+				severity : "error" , 
+				summary : "Internal Error" , 
 			detail : err.message ,
-			life : 5000
+				life : 5000
 		});
 		return [];
 	}
@@ -92,8 +92,8 @@ function create_prompt_div(id, pos, neg, image_path) {
 			</div>
 		`;
 	}
-
-	return `
+	
+	return ` 
 		<div class="csv-u-prompt-container">
 			${imageElement}
 			<div class="csv-u-text-prompts">
@@ -333,13 +333,13 @@ function createResultWidget() {
 	header.innerText = "Search List";
 	header.className = "csv-u-header";
 	result_container.appendChild(header);
-
+			
 	let search_bar = document.createElement("input");
 	search_bar.type = "text";
 	search_bar.placeholder = "Search prompts...";
 	search_bar.className = "csv-u-search-bar";
 	result_container.appendChild(search_bar);
-
+		
 	let result_list = document.createElement("div");
 	result_list.className = "csv-u-result-list";
 	result_container.appendChild(result_list);
@@ -347,9 +347,9 @@ function createResultWidget() {
 	return { result_container, result_list, search_bar };
 }
 
-app.registerExtension({
+app.registerExtension({ 
 	name: "CSV-UTILS-SEARCH",
-
+	
 	async loadedGraphNode() {
 		let style = document.createElement("style");
 		style.innerHTML = `
@@ -408,7 +408,7 @@ app.registerExtension({
                 transition: transform 0.1s ease-out;
                 user-select: none;
                 pointer-events: none;
-            }
+				}
             .csv-u-modal-close { 
                 position: absolute; 
                 top: 20px; 
@@ -426,7 +426,7 @@ app.registerExtension({
                 align-items: center;
                 justify-content: center;
                 line-height: 1;
-            }
+				}
             .csv-u-modal-close:hover { background: rgba(255, 255, 255, 0.2); }
             .csv-u-zoom-info {
                 position: absolute;
@@ -439,7 +439,7 @@ app.registerExtension({
                 border-radius: 20px;
                 font-size: 14px;
                 z-index: 10001;
-            }
+				}
             .csv-u-nav-controls {
                 position: absolute;
                 bottom: 60px;
@@ -458,7 +458,7 @@ app.registerExtension({
                 cursor: pointer;
                 font-size: 14px;
                 transition: all 0.2s ease;
-            }
+				}
             .csv-u-nav-btn:hover:not(:disabled) {
                 background: rgba(255, 255, 255, 0.2);
             }
@@ -569,7 +569,7 @@ app.registerExtension({
                     div.querySelectorAll('.csv-u-prompt-span').forEach(span => {
                         span.addEventListener("click", (e) => {
                             navigator.clipboard.writeText(e.target.innerText);
-                            app.extensionManager.toast.add({
+							app.extensionManager.toast.add({
                                 severity: "success",
                                 summary: "Copied to clipboard!",
                                 life: 2000

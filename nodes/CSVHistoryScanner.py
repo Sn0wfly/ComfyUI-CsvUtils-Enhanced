@@ -145,15 +145,18 @@ class CSVHistoryScanner:
     
     def find_png_files(self, output_path, max_images):
         """
-        Busca archivos PNG con múltiples métodos para mayor compatibilidad
+        Busca archivos PNG SOLO en el directorio principal de output
+        NUNCA busca en preview/ (esas son imágenes ya organizadas)
         """
         png_files = []
         
         try:
-            # Método 1: Buscar directamente en el directorio
+            # Método 1: Buscar SOLO directamente en el directorio principal
+            print(f"[CSV History Scanner] Searching for PNG files in: {output_path}")
             for file in os.listdir(output_path):
                 if file.lower().endswith('.png'):
                     file_path = os.path.join(output_path, file)
+                    # Verificar que sea archivo y NO esté en preview
                     if os.path.isfile(file_path):
                         png_files.append({
                             'filename': file,
@@ -161,49 +164,47 @@ class CSVHistoryScanner:
                             'relative_path': file,
                             'mtime': os.path.getmtime(file_path)
                         })
+                        print(f"[CSV History Scanner] Found PNG: {file}")
         except Exception as e:
             print(f"[CSV History Scanner] Error with os.listdir: {e}")
         
-        # Método 2: Si no encontramos nada, buscar recursivamente
+        # Si no encontramos nada en el directorio principal, intentar con subdirectorios
+        # PERO EXCLUIR EXPLÍCITAMENTE preview y otros directorios de imágenes organizadas
         if not png_files:
             try:
-                pattern = os.path.join(output_path, "**", "*.png")
-                for file_path in glob.glob(pattern, recursive=True):
-                    if os.path.isfile(file_path):
-                        filename = os.path.basename(file_path)
-                        relative_path = os.path.relpath(file_path, output_path)
-                        png_files.append({
-                            'filename': filename,
-                            'path': file_path,
-                            'relative_path': relative_path,
-                            'mtime': os.path.getmtime(file_path)
-                        })
+                print(f"[CSV History Scanner] No files in main directory, checking subdirectories (excluding preview)")
+                # Solo buscar en subdirectorios que NO sean preview, temp, etc.
+                excluded_dirs = {'preview', 'temp', 'tmp', 'archive', 'organized'}
+                
+                for item in os.listdir(output_path):
+                    item_path = os.path.join(output_path, item)
+                    if os.path.isdir(item_path) and item.lower() not in excluded_dirs:
+                        print(f"[CSV History Scanner] Checking subdirectory: {item}")
+                        try:
+                            for file in os.listdir(item_path):
+                                if file.lower().endswith('.png'):
+                                    file_path = os.path.join(item_path, file)
+                                    if os.path.isfile(file_path):
+                                        relative_path = os.path.join(item, file)
+                                        png_files.append({
+                                            'filename': file,
+                                            'path': file_path,
+                                            'relative_path': relative_path,
+                                            'mtime': os.path.getmtime(file_path)
+                                        })
+                                        print(f"[CSV History Scanner] Found PNG in {item}: {file}")
+                        except Exception as e:
+                            print(f"[CSV History Scanner] Error searching in {item}: {e}")
             except Exception as e:
-                print(f"[CSV History Scanner] Error with glob search: {e}")
-        
-        # Método 3: Buscar específicamente en subdirectorios conocidos
-        if not png_files:
-            known_subdirs = ['', 'preview', 'temp', 'output']
-            for subdir in known_subdirs:
-                try:
-                    search_path = os.path.join(output_path, subdir) if subdir else output_path
-                    if os.path.exists(search_path):
-                        for file in os.listdir(search_path):
-                            if file.lower().endswith('.png'):
-                                file_path = os.path.join(search_path, file)
-                                if os.path.isfile(file_path):
-                                    relative_path = os.path.join(subdir, file) if subdir else file
-                                    png_files.append({
-                                        'filename': file,
-                                        'path': file_path,
-                                        'relative_path': relative_path,
-                                        'mtime': os.path.getmtime(file_path)
-                                    })
-                except Exception as e:
-                    print(f"[CSV History Scanner] Error searching in {subdir}: {e}")
+                print(f"[CSV History Scanner] Error with subdirectory search: {e}")
         
         # Ordenar por fecha (más recientes primero) y limitar
         png_files.sort(key=lambda x: x['mtime'], reverse=True)
+        
+        print(f"[CSV History Scanner] Total PNG files found: {len(png_files)} (excluding preview folder)")
+        if png_files:
+            print(f"[CSV History Scanner] Sample files: {[f['filename'] for f in png_files[:3]]}")
+        
         return png_files[:max_images]
     
     def alternative_search(self, output_path):

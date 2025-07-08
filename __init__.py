@@ -51,7 +51,7 @@ print("[CSV utils] csv server routes init")
 
 WEB_DIRECTORY = "./web"
 
-NODE_CLASS_MAPPINGS = {
+NODE_CLASS_MAPPINGS = { 
     # Nombres nuevos (recomendados)
     "CSVPromptSaver": CSVPromptSaver,
     "CSVPromptSearch": CSVPromptSearch,
