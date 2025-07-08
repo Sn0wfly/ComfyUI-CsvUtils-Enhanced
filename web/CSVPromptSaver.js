@@ -24,7 +24,7 @@ function make_submenu(value, options, e, menu, node) {
 }
 
 
-async function fetchPrompt(file_path , positive_prompt , negative_prompt) {
+async function fetchPrompt(file_path , positive_prompt , negative_prompt, image_path) {
 	try {
 
 		const response = await api.fetchApi("/csv_utils/save_prompt" , {
@@ -36,7 +36,9 @@ async function fetchPrompt(file_path , positive_prompt , negative_prompt) {
 
 				negative_prompt : negative_prompt,
 				
-				file_path : file_path
+				file_path : file_path,
+				
+				image_path : image_path
 			})
 
 			, headers : {
@@ -124,7 +126,9 @@ app.registerExtension({
 				
 				let neg_prompt_label = node.widgets[2].value 
 				
-				fetchPrompt(file_path_label , pos_prompt_label , neg_prompt_label)
+				let image_path_label = node.widgets[3].value
+				
+				fetchPrompt(file_path_label , pos_prompt_label , neg_prompt_label, image_path_label)
 				
 			})
 

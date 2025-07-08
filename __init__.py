@@ -23,11 +23,13 @@ async def save_prompt(request) :
     
     if "positive_prompt" in json_data and "negative_prompt" in json_data and "file_path" in json_data :
 
-        for _ ,val in json_data.items() : 
-            if len(val) == 0 :
+        for key, val in json_data.items() : 
+            if key != "image_path" and len(val) == 0 :
                 return web.json_response({"status" : False , "message" : "empty inputs are not allowed"})
 
-        if not save_to_csv(json_data["file_path"].strip() , json_data["positive_prompt"].strip() , json_data["negative_prompt"].strip()): 
+        image_path = json_data.get("image_path", "")
+        
+        if not save_to_csv(json_data["file_path"].strip() , json_data["positive_prompt"].strip() , json_data["negative_prompt"].strip(), image_path.strip()): 
             return web.json_response({"status" : False , "message" : "the prompt already exists in the csv file"})
 
         return web.json_response({"status" : True , "message" : "prompt saved ! "})

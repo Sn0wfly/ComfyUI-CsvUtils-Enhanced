@@ -1,4 +1,3 @@
-
 class CSVPromptSave : 
     @classmethod
     def INPUT_TYPES(s) : 
@@ -7,7 +6,8 @@ class CSVPromptSave :
             "required" : {
                 "file_path" : ("STRING",) , 
                 "positive_prompt" : ("STRING",{"default" : "" , "multiline" : True}) ,
-                "negative_prompt" : ("STRING",{"default" : "" , "multiline" : True}) 
+                "negative_prompt" : ("STRING",{"default" : "" , "multiline" : True}),
+                "image_path" : ("STRING",{"default" : ""}) 
             }
         }
     
@@ -15,14 +15,14 @@ class CSVPromptSave :
     
     FUNCTION = "execute"
     
-    RETURN_TYPES = ("STRING" , "STRING")
+    RETURN_TYPES = ("STRING" , "STRING", "STRING")
     
-    RETURN_NAMES = ("positive prompt" , "negative prompt")
+    RETURN_NAMES = ("positive prompt" , "negative prompt", "image path")
     
     OUTPUT_NODE = False
     
 
-    def execute(self , file_path , positive_prompt , negative_prompt) : 
+    def execute(self , file_path , positive_prompt , negative_prompt, image_path) : 
     
-        return (positive_prompt , negative_prompt)
+        return (positive_prompt , negative_prompt, image_path)
 
