@@ -21,7 +21,7 @@ class CSVHistoryScanner:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "max_images": ("INT", {"default": 50, "min": 10, "max": 200}),
+                "max_images": ("INT", {"default": 100, "min": 10, "max": 1000}),
                 "scan_button": ("BOOLEAN", {"default": False, "label_on": "Scan Images", "label_off": "Scan Images"}),
             }
         }
