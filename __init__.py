@@ -1,14 +1,10 @@
-from .nodes.CSVPromptSaver import CSVPromptSave
-
+from .nodes.CSVPromptSaver import CSVPromptSaver
 from .nodes.CSVPromptSearch import CSVPromptSearch
-
-from .nodes.CSVPromptLoader import CSVPromptLoader
+from .nodes.CSVHistoryScanner import CSVHistoryScanner
 
 from .py.csv_utils import *
 
 from server import PromptServer
-
-from aiohttp import web
 
 from aiohttp import web
 
@@ -55,11 +51,17 @@ print("[CSV utils] csv server routes init")
 
 WEB_DIRECTORY = "./web"
 
-NODE_CLASS_MAPPINGS = { 
-    "CSVPromptSave" : CSVPromptSave ,
-    "CSVPromptSearch" : CSVPromptSearch ,
-    "CSVPromptLoader" : CSVPromptLoader                  
+NODE_CLASS_MAPPINGS = {
+    "CSVPromptSaver": CSVPromptSaver,
+    "CSVPromptSearch": CSVPromptSearch,
+    "CSVHistoryScanner": CSVHistoryScanner,
 }
 
-__all__ = ["NODE_CLASS_MAPPINGS" , "WEB_DIRECTORY"]
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "CSVPromptSaver": "CSV Prompt Saver",
+    "CSVPromptSearch": "CSV Prompt Search",
+    "CSVHistoryScanner": "CSV History Scanner",
+}
+
+__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
 
