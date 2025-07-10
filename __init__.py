@@ -2,6 +2,16 @@ from .nodes.CSVPromptSaver import CSVPromptSaver
 from .nodes.CSVPromptSearch import CSVPromptSearch
 from .nodes.CSVHistoryScanner import CSVHistoryScanner
 
+# Importación condicional de Cloud Sync
+try:
+    from .nodes.CSVCloudSync import CSVCloudSync
+    CLOUD_SYNC_AVAILABLE = True
+    print("[CSV Utils] Cloud Sync functionality available")
+except ImportError as e:
+    print(f"[CSV Utils] Cloud Sync not available: {e}")
+    print("[CSV Utils] To enable: pip install -r requirements-cloud.txt")
+    CLOUD_SYNC_AVAILABLE = False
+
 from .py.csv_utils import *
 
 from server import PromptServer
@@ -51,6 +61,7 @@ print("[CSV utils] csv server routes init")
 
 WEB_DIRECTORY = "./web"
 
+# Nodos básicos (siempre disponibles)
 NODE_CLASS_MAPPINGS = { 
     # Nombres nuevos (recomendados)
     "CSVPromptSaver": CSVPromptSaver,
@@ -70,6 +81,16 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     # Compatibilidad hacia atrás
     "CSVPromptSave": "CSV Prompt Saver (Legacy)",
 }
+
+# Agregar Cloud Sync si está disponible
+if CLOUD_SYNC_AVAILABLE:
+    NODE_CLASS_MAPPINGS.update({
+        "CSVCloudSync": CSVCloudSync,
+    })
+    
+    NODE_DISPLAY_NAME_MAPPINGS.update({
+        "CSVCloudSync": "CSV Cloud Sync",
+    })
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
 

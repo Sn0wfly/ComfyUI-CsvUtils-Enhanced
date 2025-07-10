@@ -1,0 +1,14 @@
+# CSV Cloud Sync - Dependencias mínimas
+# Instalación: pip install -r requirements-cloud.txt
+
+# Google Drive API
+google-auth>=2.23.0
+google-auth-oauthlib>=1.1.0
+google-auth-httplib2>=0.2.0
+google-api-python-client>=2.100.0
+
+# Encriptación automática
+cryptography>=41.0.0
+
+# Opcional: mejor rendimiento
+requests>=2.31.0 
