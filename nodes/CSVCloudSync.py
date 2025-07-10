@@ -240,6 +240,7 @@ class CSVCloudSync:
             folder_id = self._get_or_create_folder(service, "CSV Utils Backups")
             
             # Buscar el archivo más reciente
+            print(f"[CSV Cloud Sync] Searching for backup files in folder: {folder_id}")
             results = service.files().list(
                 q=f"'{folder_id}' in parents and name contains 'csv_utils_backup_' and name contains '.enc'",
                 orderBy='createdTime desc',
@@ -247,14 +248,17 @@ class CSVCloudSync:
             ).execute()
             
             files = results.get('files', [])
+            print(f"[CSV Cloud Sync] Found {len(files)} backup files")
             if not files:
                 return ("❌ DOWNLOAD ERROR:\nNo backup files found in Google Drive.\n\nUpload from your PC first.",)
             
             latest_file = files[0]
             file_name = latest_file['name']
             file_id = latest_file['id']
+            print(f"[CSV Cloud Sync] Downloading file: {file_name} (ID: {file_id})")
             
             # Download archivo encriptado
+            print(f"[CSV Cloud Sync] Starting file download...")
             with tempfile.NamedTemporaryFile(delete=False) as temp_file:
                 request = service.files().get_media(fileId=file_id)
                 downloader = MediaIoBaseDownload(temp_file, request)
@@ -262,27 +266,42 @@ class CSVCloudSync:
                 done = False
                 while done is False:
                     status, done = downloader.next_chunk()
+                    if status:
+                        print(f"[CSV Cloud Sync] Download progress: {int(status.progress() * 100)}%")
                 
                 encrypted_path = temp_file.name
             
+            print(f"[CSV Cloud Sync] File downloaded to: {encrypted_path}")
+            print(f"[CSV Cloud Sync] File size: {os.path.getsize(encrypted_path)} bytes")
+            
             # Desencriptar
+            print(f"[CSV Cloud Sync] Reading encrypted file...")
             with open(encrypted_path, 'rb') as f:
                 encrypted_data = f.read()
             
+            print(f"[CSV Cloud Sync] Starting decryption...")
             try:
                 decrypted_data = fernet.decrypt(encrypted_data)
+                print(f"[CSV Cloud Sync] Decryption successful! Decrypted size: {len(decrypted_data)} bytes")
             except Exception as e:
+                print(f"[CSV Cloud Sync] Decryption failed: {e}")
                 os.unlink(encrypted_path)
                 return ("❌ DECRYPTION ERROR:\nCannot decrypt data. Using different Google credentials?\n\nUse same credentials as upload device.",)
             
             # Extraer ZIP
+            print(f"[CSV Cloud Sync] Creating temporary ZIP file...")
             with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as temp_zip:
                 temp_zip.write(decrypted_data)
                 zip_path = temp_zip.name
             
+            print(f"[CSV Cloud Sync] ZIP file created: {zip_path}")
+            
             # Crear directorios si no existen
+            print(f"[CSV Cloud Sync] Creating directories...")
             os.makedirs(os.path.dirname(csv_path), exist_ok=True)
             os.makedirs(preview_dir, exist_ok=True)
+            print(f"[CSV Cloud Sync] Target CSV: {csv_path}")
+            print(f"[CSV Cloud Sync] Target preview: {preview_dir}")
             
             # Clear preview directory for clean sync
             if os.path.exists(preview_dir):
@@ -292,19 +311,28 @@ class CSVCloudSync:
                 print(f"[CSV Cloud Sync] Cleared local preview directory for clean sync")
             
             # Extraer contenido
+            print(f"[CSV Cloud Sync] Extracting ZIP contents...")
             image_count = 0
             with zipfile.ZipFile(zip_path, 'r') as zipf:
-                for member in zipf.namelist():
+                members = zipf.namelist()
+                print(f"[CSV Cloud Sync] ZIP contains {len(members)} files: {members}")
+                
+                for member in members:
                     if member == 'prompt_history.csv':
+                        print(f"[CSV Cloud Sync] Extracting CSV: {member}")
                         zipf.extract(member, os.path.dirname(csv_path))
                         extracted_csv = os.path.join(os.path.dirname(csv_path), member)
                         if extracted_csv != csv_path:
                             import shutil
                             shutil.move(extracted_csv, csv_path)
+                        print(f"[CSV Cloud Sync] CSV extracted and moved to: {csv_path}")
                     elif member.startswith('preview/'):
+                        print(f"[CSV Cloud Sync] Extracting image: {member}")
                         # Extraer a preview directory
                         zipf.extract(member, os.path.dirname(preview_dir))
                         image_count += 1
+                        
+            print(f"[CSV Cloud Sync] Extraction complete: {image_count} images extracted")
             
             # Limpiar archivos temporales
             os.unlink(encrypted_path)
