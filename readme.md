@@ -1,17 +1,18 @@
 # ComfyUI CSV Utils - Enhanced
 
-> **A complete solution for managing your ComfyUI prompts and images** 🎨  
-> Save, organize and navigate your prompt collection with a modern visual interface
+> **A complete solution for managing your ComfyUI prompts and images** ��  
+> Save, organize, sync and navigate your prompt collection with cloud backup
 
 ## 📋 What is this?
 
-**ComfyUI CSV Utils Enhanced** is a 3-node system that converts scattered prompt chaos into an organized and navigable collection. Think of it as your **personal prompt library** with integrated image viewer.
+**ComfyUI CSV Utils Enhanced** is a **5-node system** that converts scattered prompt chaos into an organized, searchable, and cloud-synced collection. Think of it as your **personal prompt library** with integrated image viewer and **cross-device sync**.
 
 ### 🎯 Problem it solves:
 - ❌ Lost prompts after generating images
 - ❌ Good images mixed with failed experiments  
 - ❌ Hard to find which prompt generated which image
 - ❌ No way to review your previous work
+- ❌ **Can't access prompts on different machines (PC ↔ vast.ai)**
 
 ### ✅ What you get:
 - 🏛️ **Organized library** of prompts and images
@@ -19,11 +20,14 @@
 - 🤖 **Automatic extraction** of prompts from images
 - 📁 **Automatic organization** of files
 - 💾 **Persistent memory** - remembers your preferences
+- ☁️ **Cloud sync** - access your collection anywhere (PC ↔ vast.ai)
+- 🔐 **Privacy-first** - encrypted cloud storage
 
 ---
 
 ## 🚀 Quick Installation
 
+### Basic Installation (Local Use)
 1. **Clone or download** this repository to your ComfyUI `custom_nodes` folder:
    ```bash
    cd ComfyUI/custom_nodes
@@ -33,6 +37,17 @@
 2. **Restart ComfyUI** completely
 
 3. **Done!** You'll find the nodes in the **"CSV Utils"** category
+
+### Cloud Sync Installation (PC ↔ vast.ai)
+1. **Install cloud dependencies**:
+   ```bash
+   cd ComfyUI/custom_nodes/ComfyUI-CsvUtils
+   pip install -r requirements-cloud.txt
+   ```
+
+2. **Follow the 15-minute setup guide**: See [SETUP-15MIN.md](SETUP-15MIN.md)
+
+3. **Restart ComfyUI** - you'll now have the **CSV Cloud Sync** node available
 
 ---
 
@@ -68,9 +83,15 @@
 3. **Navigate your collection** with thumbnails and zoom
 4. **Use saved prompts** as reference or starting point
 
+### Step 6: Cloud Sync (Optional)
+1. **Add "CSV Cloud Sync"** node for cross-device access
+2. **Upload** your collection from PC
+3. **Download** on vast.ai or other machines
+4. **Work seamlessly** across devices
+
 ---
 
-## 🛠️ The 3 Nodes Explained
+## 🛠️ The 5 Nodes Explained
 
 ### 🔧 1. CSV Prompt Saver
 > **For when you want to save prompts manually**
@@ -125,11 +146,39 @@
 - **Flexible selection** - by complete group or individual image
 - **Modal view** - click any thumbnail to see full-size
 
+### 📥 4. CSV Prompt Loader
+> **Load saved prompts into your workflow**
+
+**When to use**: You want to use a previously saved prompt as starting point for new generations.
+
+**Key features**:
+- 🎯 **Direct integration** with your CSV files
+- 🔄 **Quick loading** of positive and negative prompts
+- 🔍 **Easy browsing** through your prompt history
+
+### ☁️ 5. CSV Cloud Sync ⭐ NEW!
+> **Sync your collection across devices**
+
+**When to use**: You want to access your prompt collection on different machines (PC, vast.ai, etc.).
+
+**Key features**:
+- 🔐 **Privacy-first** - automatic encryption (Google never sees your prompts)
+- 🚀 **15-minute setup** - follow [SETUP-15MIN.md](SETUP-15MIN.md)
+- 📤 **Upload mode** - backup your collection to Google Drive
+- 📥 **Download mode** - restore collection on new machine
+- 🔄 **Automatic** - detects CSV and preview folder automatically
+
+**Perfect for**:
+- **PC → vast.ai workflow**
+- **Multiple workstations**
+- **Backup and restore**
+- **Team collaboration**
+
 ---
 
 ## 🎯 Recommended Workflows
 
-### 🔄 Daily Workflow (Recommended)
+### 🔄 Daily Workflow (Local)
 ```
 1. Generate images with ComfyUI (normal)
 2. CSV History Scanner → Scan
@@ -138,11 +187,26 @@
 5. CSV Prompt Search to navigate your collection
 ```
 
+### ☁️ Cloud Workflow (PC ↔ vast.ai)
+```
+PC:
+1. Generate and organize with History Scanner
+2. CSV Cloud Sync → Upload
+
+vast.ai:
+1. CSV Cloud Sync → Download
+2. Work with your prompts normally
+3. CSV Cloud Sync → Upload (new work)
+
+PC:
+4. CSV Cloud Sync → Download (sync back)
+```
+
 ### 🎨 Creative Workflow
 ```
 1. CSV Prompt Search → find inspiration in your library
-2. Modify existing prompts
-3. Generate new variations
+2. CSV Prompt Loader → load base prompt
+3. Modify and generate new variations
 4. CSV History Scanner → organize the new results
 ```
 
@@ -306,7 +370,15 @@ The system searches for images automatically in priority order:
 
 ## 📈 Versions and Changelog
 
-### 🆕 v2.1 (Current)
+### 🆕 v3.0 (Current) - Cloud Sync Release
+- ☁️ **CSV Cloud Sync** - Cross-device synchronization (PC ↔ vast.ai)
+- 🔐 **Privacy-first encryption** - Google never sees your prompts
+- 📥 **CSV Prompt Loader** - Easy integration of saved prompts
+- 🚀 **15-minute setup** for cloud functionality
+- 📦 **Optional dependencies** - cloud features don't affect core functionality
+- 🎯 **5-node complete system** for professional workflows
+
+### 📚 v2.1
 - ✨ **CSV History Scanner** - Automatic prompt extraction
 - 🎨 **Enhanced zoom modal** with pan and keyboard controls
 - 📁 **Full subdirectory support** and smart search

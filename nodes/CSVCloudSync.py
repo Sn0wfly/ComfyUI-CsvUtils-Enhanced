@@ -23,8 +23,10 @@ try:
     from googleapiclient.discovery import build
     from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
     GOOGLE_AVAILABLE = True
-except ImportError:
+    print("[CSV Cloud Sync] ✅ Google Drive dependencies loaded successfully")
+except ImportError as e:
     GOOGLE_AVAILABLE = False
+    print(f"[CSV Cloud Sync] ❌ Failed to load Google Drive dependencies: {e}")
 
 class CSVCloudSync:
     """
@@ -51,14 +53,30 @@ class CSVCloudSync:
         """
         Cloud sync automático: Upload/Download preview + CSV
         """
+        print(f"[CSV Cloud Sync] Mode: {mode}, Execute: {execute}")
+        print(f"[CSV Cloud Sync] GOOGLE_AVAILABLE = {GOOGLE_AVAILABLE}")
+        
         if not execute:
-            return ("Ready to sync. Click Execute to start.",)
+            result = "⏳ Ready to sync. Click Execute to start."
+            print(f"[CSV Cloud Sync] {result}")
+            return (result,)
         
         if not GOOGLE_AVAILABLE:
-            return ("❌ ERROR: Install dependencies first:\npip install -r requirements-cloud.txt",)
+            result = "❌ ERROR: Install dependencies first:\npip install -r requirements-cloud.txt"
+            print(f"[CSV Cloud Sync] {result}")
+            print(f"[CSV Cloud Sync] GOOGLE_AVAILABLE is currently: {GOOGLE_AVAILABLE}")
+            # Re-test dependencies
+            try:
+                from google.auth.transport.requests import Request
+                print("[CSV Cloud Sync] Re-test: Google auth available")
+            except ImportError as e:
+                print(f"[CSV Cloud Sync] Re-test: Google auth failed: {e}")
+            return (result,)
         
         if not google_credentials.strip():
-            return ("❌ ERROR: Google credentials required.\nSee SETUP-15MIN.md for quick setup.",)
+            result = "❌ ERROR: Google credentials required.\nSee SETUP-15MIN.md for quick setup."
+            print(f"[CSV Cloud Sync] {result}")
+            return (result,)
         
         try:
             # Detectar archivos automáticamente
@@ -66,9 +84,14 @@ class CSVCloudSync:
             csv_path = os.path.join(output_dir, "prompt_history.csv")
             preview_dir = os.path.join(output_dir, "preview")
             
+            print(f"[CSV Cloud Sync] Checking files:")
+            print(f"[CSV Cloud Sync] - CSV: {csv_path} (exists: {os.path.exists(csv_path)})")
+            print(f"[CSV Cloud Sync] - Preview: {preview_dir} (exists: {os.path.exists(preview_dir)})")
+            
             # Validar setup
             validation_error = self._validate_setup(csv_path, preview_dir, mode)
             if validation_error:
+                print(f"[CSV Cloud Sync] Validation failed: {validation_error}")
                 return (validation_error,)
             
             # Configurar Google Drive
@@ -93,16 +116,25 @@ class CSVCloudSync:
         """Validar que tenemos los archivos necesarios"""
         if mode == "Upload":
             if not os.path.exists(csv_path):
-                return "❌ UPLOAD ERROR:\nNo CSV found at: output/prompt_history.csv\n\nUse CSV History Scanner first."
+                error = "❌ UPLOAD ERROR:\nNo CSV found at: output/prompt_history.csv\n\nUse CSV History Scanner first."
+                print(f"[CSV Cloud Sync] {error}")
+                return error
             
             if not os.path.exists(preview_dir):
-                return "❌ UPLOAD ERROR:\nNo preview folder found.\n\nUse CSV History Scanner to organize images first."
+                error = "❌ UPLOAD ERROR:\nNo preview folder found.\n\nUse CSV History Scanner to organize images first."
+                print(f"[CSV Cloud Sync] {error}")
+                return error
             
             # Contar archivos
             preview_files = [f for f in os.listdir(preview_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+            print(f"[CSV Cloud Sync] Found {len(preview_files)} images in preview folder")
+            
             if not preview_files:
-                return "❌ UPLOAD ERROR:\nPreview folder is empty.\n\nAdd some images with CSV History Scanner."
+                error = "❌ UPLOAD ERROR:\nPreview folder is empty.\n\nAdd some images with CSV History Scanner."
+                print(f"[CSV Cloud Sync] {error}")
+                return error
         
+        print(f"[CSV Cloud Sync] Validation passed for {mode} mode")
         return None
     
     def _setup_google_drive(self, credentials_json):
@@ -114,7 +146,10 @@ class CSVCloudSync:
         
         credentials = service_account.Credentials.from_service_account_info(
             credentials_data,
-            scopes=['https://www.googleapis.com/auth/drive.file']
+            scopes=[
+                'https://www.googleapis.com/auth/drive.file',
+                'https://www.googleapis.com/auth/drive'
+            ]
         )
         
         service = build('drive', 'v3', credentials=credentials)
@@ -285,6 +320,7 @@ class CSVCloudSync:
         
         folders = results.get('files', [])
         if folders:
+            print(f"[CSV Cloud Sync] Found existing folder: {folder_name}")
             return folders[0]['id']
         
         # Crear nueva carpeta
@@ -293,4 +329,27 @@ class CSVCloudSync:
             'mimeType': 'application/vnd.google-apps.folder'
         }
         folder = service.files().create(body=folder_metadata).execute()
-        return folder['id'] 
+        folder_id = folder['id']
+        
+        print(f"[CSV Cloud Sync] Created new folder: {folder_name} (ID: {folder_id})")
+        
+        # ACTIVADO: Compartir con tu cuenta personal
+        # CAMBIA el email por el tuyo:
+        YOUR_PERSONAL_EMAIL = "esnifer.rs@gmail.com"  # ← CAMBIA ESTO
+        
+        try:
+            permission = {
+                'type': 'user',
+                'role': 'writer',
+                'emailAddress': YOUR_PERSONAL_EMAIL
+            }
+            service.permissions().create(
+                fileId=folder_id,
+                body=permission
+            ).execute()
+            print(f"[CSV Cloud Sync] Folder shared with {YOUR_PERSONAL_EMAIL}")
+        except Exception as e:
+            print(f"[CSV Cloud Sync] Could not share folder: {e}")
+            print(f"[CSV Cloud Sync] Files still uploaded, just not visible in your personal Drive")
+        
+        return folder_id 
