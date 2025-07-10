@@ -165,11 +165,12 @@
 - 🔐 **Privacy-first** - automatic encryption (Google never sees your prompts)
 - 🚀 **15-minute setup** - follow [SETUP-15MIN.md](SETUP-15MIN.md)
 - 📤 **Upload mode** - backup your collection to Google Drive
-- 📥 **Download mode** - restore collection on new machine
+- 📥 **Download mode** - restore collection on new machine (replaces local files)
 - 🔄 **Automatic** - detects CSV and preview folder automatically
+- 🚫 **Smart collision prevention** - unique timestamp renaming prevents image conflicts
 
 **Perfect for**:
-- **PC → vast.ai workflow**
+- **PC → vast.ai workflow** (no image name collisions)
 - **Multiple workstations**
 - **Backup and restore**
 - **Team collaboration**
@@ -298,6 +299,12 @@ The system searches for images automatically in priority order:
 - **Smart detection** of positive vs negative prompts
 - **Robust handling** of different workflow formats
 
+### 🚫 Smart Collision Prevention
+- **Unique timestamp renaming** - prevents image name conflicts between sessions
+- **Cross-device safety** - work on PC and vast.ai without overwriting images
+- **Format**: `ComfyUI_00001_1703901234567.png` (original name + millisecond timestamp)
+- **Automatic handling** - no manual intervention required
+
 ---
 
 ## 🔧 Troubleshooting
@@ -370,7 +377,13 @@ The system searches for images automatically in priority order:
 
 ## 📈 Versions and Changelog
 
-### 🆕 v3.0 (Current) - Cloud Sync Release
+### 🆕 v3.1 (Current) - Smart Sync & Collision Prevention
+- 🚫 **Smart collision prevention** - unique timestamp renaming prevents image conflicts
+- 🔧 **Simplified cloud sync** - cleaner download process without backup clutter
+- ✅ **Session safety** - work on multiple devices without image overwrites
+- 🎯 **Perfect PC ↔ vast.ai workflow** - seamless cross-device development
+
+### 📚 v3.0 - Cloud Sync Release
 - ☁️ **CSV Cloud Sync** - Cross-device synchronization (PC ↔ vast.ai)
 - 🔐 **Privacy-first encryption** - Google never sees your prompts
 - 📥 **CSV Prompt Loader** - Easy integration of saved prompts

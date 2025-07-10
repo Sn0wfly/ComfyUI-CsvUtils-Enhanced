@@ -2,6 +2,27 @@
 
 All notable changes to ComfyUI CSV Utils Enhanced will be documented in this file.
 
+## [3.1.0] - 2024-07-10 - Smart Sync & Collision Prevention
+
+### 🔧 Cloud Sync Improvements
+- **Simplified Download** - Removed backup system for cleaner sync process
+- **Direct Replacement** - Download now directly replaces local files for consistency
+- **Cleaner Workflow** - No more backup files cluttering the output directory
+
+### 🚫 Image Collision Prevention
+- **Unique Timestamp Renaming** - Prevents image name collisions between sessions
+- **Smart File Management** - Images automatically renamed when conflicts detected
+- **Session Safety** - Work on PC and vast.ai without overwriting images
+- **Format**: `original_name_1703901234567.png` (millisecond timestamp)
+
+### 🎯 Use Case Solved
+Perfect for **PC ↔ vast.ai workflow**:
+- Generate on PC: `ComfyUI_00001.png` → `preview/ComfyUI_00001.png`
+- Work on vast.ai: `ComfyUI_00001.png` → `preview/ComfyUI_00001_1703901234567.png`
+- No image loss, perfect sync, consistent CSV references
+
+---
+
 ## [3.0.0] - 2024-07-10 - Cloud Sync Release
 
 ### 🆕 Major New Features

@@ -284,6 +284,13 @@ class CSVCloudSync:
             os.makedirs(os.path.dirname(csv_path), exist_ok=True)
             os.makedirs(preview_dir, exist_ok=True)
             
+            # Clear preview directory for clean sync
+            if os.path.exists(preview_dir):
+                for f in os.listdir(preview_dir):
+                    if f.lower().endswith(('.png', '.jpg', '.jpeg')):
+                        os.remove(os.path.join(preview_dir, f))
+                print(f"[CSV Cloud Sync] Cleared local preview directory for clean sync")
+            
             # Extraer contenido
             image_count = 0
             with zipfile.ZipFile(zip_path, 'r') as zipf:

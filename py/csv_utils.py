@@ -115,14 +115,13 @@ def save_multiple_to_csv_with_move(entries: list) -> dict:
                             if os.path.exists(img_source_path) and img_source_path != img_dest_path:
                                 final_dest_filename = img_filename
                                 if os.path.exists(img_dest_path):
-                                    # Si ya existe en destino, generar nombre único
+                                    # Si ya existe en destino, generar nombre único con timestamp
+                                    import time
                                     base_name, ext = os.path.splitext(img_filename)
-                                    counter = 1
-                                    while os.path.exists(img_dest_path):
-                                        final_dest_filename = f"{base_name}_{counter}{ext}"
-                                        img_dest_path = os.path.join(preview_dir, final_dest_filename)
-                                        counter += 1
-                                    print(f"[CSV DEBUG] Destination existed, using new name: {final_dest_filename}")
+                                    timestamp = int(time.time() * 1000)  # timestamp en milliseconds para unicidad
+                                    final_dest_filename = f"{base_name}_{timestamp}{ext}"
+                                    img_dest_path = os.path.join(preview_dir, final_dest_filename)
+                                    print(f"[CSV DEBUG] Destination existed, using timestamp name: {final_dest_filename}")
                                 
                                 print(f"[CSV DEBUG] Attempting to move: {img_source_path} -> {img_dest_path}")
                                 
