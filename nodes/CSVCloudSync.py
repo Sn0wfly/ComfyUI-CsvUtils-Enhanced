@@ -284,9 +284,10 @@ class CSVCloudSync:
                 decrypted_data = fernet.decrypt(encrypted_data)
                 print(f"[CSV Cloud Sync] Decryption successful! Decrypted size: {len(decrypted_data)} bytes")
             except Exception as e:
-                print(f"[CSV Cloud Sync] Decryption failed: {e}")
+                print(f"[CSV Cloud Sync] Decryption failed: {type(e).__name__}: {e}")
+                print(f"[CSV Cloud Sync] This usually means you're using DIFFERENT Google credentials than upload device")
                 os.unlink(encrypted_path)
-                return ("❌ DECRYPTION ERROR:\nCannot decrypt data. Using different Google credentials?\n\nUse same credentials as upload device.",)
+                return ("❌ DECRYPTION ERROR:\n\n🔑 CREDENTIAL MISMATCH:\nCannot decrypt data - you're using different Google credentials than the upload device.\n\n✅ SOLUTION:\nUse the EXACT SAME Google Service Account JSON file that you used on your PC for upload.\n\n📋 DETAILS:\n- Upload was done with Credentials A\n- Download attempted with Credentials B\n- Encryption key is derived from credentials\n- Must use identical credentials for encryption/decryption",)
             
             # Extraer ZIP
             print(f"[CSV Cloud Sync] Creating temporary ZIP file...")
