@@ -220,13 +220,16 @@ class CSVCloudSync:
             )
             response = request.execute()
             
+            # Cleanup old backups (keep only 3 most recent)
+            self._cleanup_old_backups(service, folder_id)
+            
             # Limpiar archivos temporales
             os.unlink(zip_path)
             os.unlink(encrypted_path)
             
             print(f"[CSV Cloud Sync] Upload completed: {file_name}")
             
-            return (f"✅ UPLOAD SUCCESSFUL!\n\n📤 UPLOADED:\n- CSV: prompt_history.csv\n- Images: {image_count} files\n- Size: {len(encrypted_data)/1024:.1f} KB (encrypted)\n- File: {file_name}\n\n🔐 SECURITY:\n- Data encrypted before upload\n- Google only sees encrypted data\n- Auto-generated encryption key\n\n🎯 NEXT STEP:\nUse Download mode on vast.ai with same Google credentials.",)
+            return (f"✅ UPLOAD SUCCESSFUL!\n\n📤 UPLOADED:\n- CSV: prompt_history.csv\n- Images: {image_count} files\n- Size: {len(encrypted_data)/1024:.1f} KB (encrypted)\n- File: {file_name}\n\n🔐 SECURITY:\n- Data encrypted before upload\n- Google only sees encrypted data\n- Auto-generated encryption key\n\n🗂️ STORAGE:\n- Auto-cleanup keeps max 3 backups\n- Old versions automatically deleted\n- Saves Google Drive space\n\n🎯 NEXT STEP:\nUse Download mode on vast.ai with same Google credentials.",)
             
         except Exception as e:
             return (f"❌ UPLOAD FAILED:\n{str(e)}",)
@@ -389,3 +392,41 @@ class CSVCloudSync:
             print(f"[CSV Cloud Sync] Files still uploaded, just not visible in your personal Drive")
         
         return folder_id 
+    
+    def _cleanup_old_backups(self, service, folder_id, max_backups=3):
+        """Mantener solo los N backups más recientes para ahorrar espacio"""
+        try:
+            print(f"[CSV Cloud Sync] Checking for old backups (keeping max {max_backups})...")
+            
+            # Buscar TODOS los backups ordenados por fecha (más reciente primero)
+            results = service.files().list(
+                q=f"'{folder_id}' in parents and name contains 'csv_utils_backup_' and name contains '.enc'",
+                orderBy='createdTime desc',
+                pageSize=10  # Buscar hasta 10 para tener margen
+            ).execute()
+            
+            files = results.get('files', [])
+            print(f"[CSV Cloud Sync] Found {len(files)} total backup files")
+            
+            if len(files) > max_backups:
+                # Eliminar los backups más antiguos (después del límite)
+                files_to_delete = files[max_backups:]
+                print(f"[CSV Cloud Sync] Deleting {len(files_to_delete)} old backup files...")
+                
+                for file_to_delete in files_to_delete:
+                    file_name = file_to_delete['name']
+                    file_id = file_to_delete['id']
+                    
+                    try:
+                        service.files().delete(fileId=file_id).execute()
+                        print(f"[CSV Cloud Sync] Deleted old backup: {file_name}")
+                    except Exception as e:
+                        print(f"[CSV Cloud Sync] Could not delete {file_name}: {e}")
+                
+                print(f"[CSV Cloud Sync] Cleanup complete - kept {max_backups} most recent backups")
+            else:
+                print(f"[CSV Cloud Sync] No cleanup needed - only {len(files)} backups (limit: {max_backups})")
+                
+        except Exception as e:
+            print(f"[CSV Cloud Sync] Backup cleanup failed (non-critical): {e}")
+            # No retornar error - cleanup es opcional
