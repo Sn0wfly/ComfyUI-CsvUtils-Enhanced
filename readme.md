@@ -31,7 +31,7 @@
 1. **Clone or download** this repository to your ComfyUI `custom_nodes` folder:
    ```bash
    cd ComfyUI/custom_nodes
-   git clone https://github.com/yourrepository/ComfyUI-CsvUtils.git
+   git clone https://github.com/Sn0wfly/ComfyUI-CsvUtils-Enhanced
    ```
 
 2. **Restart ComfyUI** completely
@@ -41,7 +41,7 @@
 ### Cloud Sync Installation (PC ↔ vast.ai)
 1. **Install cloud dependencies**:
    ```bash
-   cd ComfyUI/custom_nodes/ComfyUI-CsvUtils
+   cd ComfyUI/custom_nodes/ComfyUI-CsvUtils-Enhanced
    pip install -r requirements-cloud.txt
    ```
 
